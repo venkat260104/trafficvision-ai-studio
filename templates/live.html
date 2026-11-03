@@ -1,0 +1,193 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrafficVision AI | Live Recognition</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: #080f1d;
+            color: #eef5ff;
+            font-family: "Segoe UI", Arial, sans-serif;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 6%;
+            background: #0d1728;
+            border-bottom: 1px solid #263954;
+        }
+
+        .brand { font-size: 24px; font-weight: 800; }
+        .brand span { color: #32c5ff; }
+
+        .badge {
+            color: #66efbd;
+            background: #103126;
+            padding: 9px 14px;
+            border-radius: 30px;
+            font-size: 13px;
+        }
+
+        main {
+            max-width: 1120px;
+            margin: 45px auto;
+            padding: 0 22px;
+        }
+
+        .hero { margin-bottom: 28px; }
+
+        .eyebrow {
+            color: #35c8ff;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 2px;
+        }
+
+        h1 { font-size: clamp(30px, 5vw, 46px); margin: 14px 0; }
+
+        .muted { color: #9db1cc; line-height: 1.7; }
+
+        .panel {
+            background: #101c2e;
+            border: 1px solid #273b55;
+            border-radius: 18px;
+            padding: 24px;
+        }
+
+        .panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        h2 { margin: 0; font-size: 21px; }
+
+        .camera-status { color: #65e8b4; font-size: 13px; }
+
+        .video-box {
+            margin-top: 22px;
+            background: #050a13;
+            border: 1px solid #293d57;
+            border-radius: 13px;
+            overflow: hidden;
+            min-height: 240px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .video-box img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 22px;
+        }
+
+        .btn {
+            padding: 12px 18px;
+            border-radius: 9px;
+            border: 1px solid #344b68;
+            color: #eef5ff;
+            background: #172941;
+            text-decoration: none;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .primary {
+            background: linear-gradient(100deg, #149de6, #555cf1);
+            border: none;
+        }
+
+        .info {
+            margin-top: 22px;
+            padding: 16px;
+            background: #0b1525;
+            border-radius: 10px;
+            color: #a9bdd6;
+            line-height: 1.7;
+            font-size: 13px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 16px;
+            color: #7186a3;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            header { padding: 18px; }
+            main { margin: 28px auto; padding: 0 14px; }
+            .panel { padding: 16px; }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">Traffic<span>Vision</span></div>
+        <div class="badge">● AI Model Ready</div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="eyebrow">COMPUTER VISION / LIVE MODE</div>
+            <h1>Live Traffic Sign Recognition</h1>
+            <p class="muted">
+                Analyze camera frames with your trained CNN model
+                and see predicted sign categories in real time.
+            </p>
+        </section>
+
+        <section class="panel">
+            <div class="panel-heading">
+                <h2>Camera monitoring</h2>
+                <span class="camera-status">● Recognition stream</span>
+            </div>
+
+            <p class="muted">
+                Position a clear traffic sign in front of your webcam.
+            </p>
+
+            <div class="video-box">
+                <img
+                    src="{{ url_for('video_feed') }}"
+                    alt="Live camera feed with AI predictions"
+                >
+            </div>
+
+            <div class="controls">
+                <a class="btn primary" href="/live">Restart stream ↻</a>
+                <a class="btn" href="/">← Image dashboard</a>
+            </div>
+
+            <div class="info">
+                <strong>Important:</strong> This model classifies the
+                entire frame; it does not locate traffic signs separately.
+                Background objects can affect predictions. Confidence is
+                not a guarantee of correctness. Do not use this demo as
+                a safety-critical driving system.
+            </div>
+        </section>
+    </main>
+
+    <footer>TrafficVision AI Studio · TensorFlow & OpenCV</footer>
+</body>
+</html>

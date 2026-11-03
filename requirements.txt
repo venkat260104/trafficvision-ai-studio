@@ -1,0 +1,7 @@
+Flask
+gunicorn
+tensorflow==2.21.0
+ultralytics==8.4.192
+opencv-python-headless
+numpy
+Pillow

@@ -1,0 +1,643 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrafficVision | AI Traffic Sign Recognition</title>
+
+    <style>
+        :root {
+            --bg: #080e1b;
+            --panel: #101b2d;
+            --panel-light: #13243a;
+            --border: #25364e;
+            --text: #f1f5f9;
+            --muted: #9aacc5;
+            --blue: #22c3ee;
+            --purple: #625cf5;
+            --green: #34d399;
+            --red: #fb7185;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(ellipse at 50% 0%, #142b48 0%, transparent 48%),
+                var(--bg);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 6%;
+            border-bottom: 1px solid var(--border);
+            background: rgba(8, 14, 27, 0.88);
+        }
+
+        .brand {
+            font-size: 25px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .brand span {
+            color: var(--blue);
+        }
+
+        .status {
+            color: var(--green);
+            background: rgba(52, 211, 153, 0.10);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            border-radius: 30px;
+            padding: 7px 14px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .container {
+            width: min(1220px, 90%);
+            margin: auto;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 65px 0 45px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            padding: 7px 15px;
+            border-radius: 30px;
+            color: var(--blue);
+            background: rgba(34, 195, 238, 0.08);
+            border: 1px solid rgba(34, 195, 238, 0.25);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+        }
+
+        .hero h1 {
+            font-size: clamp(34px, 5vw, 58px);
+            line-height: 1.15;
+            letter-spacing: -2px;
+            margin: 23px 0 17px;
+        }
+
+        .hero h1 span {
+            color: var(--blue);
+        }
+
+        .hero p {
+            color: var(--muted);
+            max-width: 650px;
+            margin: auto;
+            font-size: 16px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            padding: 22px 24px;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: linear-gradient(145deg, #132035, #0e1828);
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 25px;
+            font-weight: 800;
+            margin: 5px 0;
+        }
+
+        .stat-note {
+            color: var(--green);
+            font-size: 12px;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            align-items: stretch;
+        }
+
+        .panel {
+            min-width: 0;
+            padding: 27px;
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            background: linear-gradient(150deg, #121f32, #0c1626);
+        }
+
+        .panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .panel-heading h2 {
+            font-size: 20px;
+        }
+
+        .step {
+            font-size: 11px;
+            color: var(--blue);
+            background: rgba(34, 195, 238, 0.09);
+            border-radius: 8px;
+            padding: 5px 10px;
+            white-space: nowrap;
+        }
+
+        .description {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 22px;
+        }
+
+        .upload-box {
+            min-height: 245px;
+            border: 1.5px dashed #28769b;
+            border-radius: 16px;
+            background: rgba(10, 24, 41, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 25px 15px;
+            transition: border-color .2s, background .2s;
+        }
+
+        .upload-box:hover {
+            border-color: var(--blue);
+            background: rgba(34, 195, 238, 0.04);
+        }
+
+        .camera-icon {
+            font-size: 38px;
+            margin-bottom: 10px;
+        }
+
+        .upload-box h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .upload-box p {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 17px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            max-width: 320px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        input[type="file"]::file-selector-button {
+            background: #1b3049;
+            border: 1px solid #38516e;
+            border-radius: 9px;
+            color: white;
+            padding: 10px 13px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .primary-btn,
+        .live-camera-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            border: 0;
+            border-radius: 12px;
+            padding: 15px 20px;
+            font-size: 15px;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform .2s, box-shadow .2s;
+        }
+
+        .primary-btn {
+            margin-top: 20px;
+            color: white;
+            background: linear-gradient(110deg, #149ee0, #6058f5);
+            box-shadow: 0 8px 25px rgba(48, 119, 237, 0.16);
+        }
+
+        .primary-btn:hover,
+        .live-camera-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(34, 195, 238, 0.18);
+        }
+
+        .live-camera-btn {
+            margin-top: 13px;
+            color: var(--blue);
+            background: rgba(34, 195, 238, 0.07);
+            border: 1px solid rgba(34, 195, 238, 0.35);
+        }
+
+        .result-image {
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #08111f;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            margin-bottom: 24px;
+        }
+
+        .result-image img {
+            display: block;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .placeholder {
+            text-align: center;
+            padding: 20px;
+            color: var(--muted);
+        }
+
+        .placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .result-label {
+            color: var(--blue);
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .prediction {
+            font-size: clamp(22px, 3vw, 30px);
+            line-height: 1.3;
+            margin: 7px 0 18px;
+            overflow-wrap: anywhere;
+        }
+
+        .confidence-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 13px;
+            margin-bottom: 9px;
+        }
+
+        .confidence-row span:first-child {
+            color: var(--muted);
+        }
+
+        .confidence-value {
+            color: var(--green);
+            font-weight: 800;
+        }
+
+        .progress-track {
+            height: 9px;
+            background: #25344a;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #18b9ed, #41e0a3);
+            border-radius: 20px;
+        }
+
+        .confidence-note {
+            margin-top: 15px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .alert {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 17px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            color: #fecdd3;
+            background: rgba(251, 113, 133, 0.10);
+            border: 1px solid rgba(251, 113, 133, 0.3);
+        }
+
+        .tip {
+            margin: 25px 0 35px;
+            padding: 20px 23px;
+            background: #0e1929;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .tip strong {
+            display: block;
+            color: var(--text);
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        footer {
+            text-align: center;
+            border-top: 1px solid var(--border);
+            padding: 24px 15px;
+            color: #71849e;
+            font-size: 12px;
+        }
+
+        @media (max-width: 850px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .hero {
+                padding-top: 45px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 16px 5%;
+            }
+
+            .brand {
+                font-size: 21px;
+            }
+
+            .container {
+                width: 92%;
+            }
+
+            .panel {
+                padding: 18px;
+            }
+
+            .panel-heading h2 {
+                font-size: 17px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="navbar">
+        <div class="brand">Traffic<span>Vision</span></div>
+        <div class="status">● Model Ready</div>
+    </header>
+
+    <main class="container">
+
+        <section class="hero">
+            <div class="eyebrow">AI-POWERED COMPUTER VISION</div>
+
+            <h1>Traffic sign <span>prediction</span></h1>
+
+            <p>
+                Intelligent traffic sign recognition powered by your trained
+                deep learning model. Upload a sign image or use your camera
+                for live recognition.
+            </p>
+        </section>
+
+        <section class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Model test accuracy</div>
+                <div class="stat-value">94.44%</div>
+                <div class="stat-note">✓ Evaluated on test dataset</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Recognition classes</div>
+                <div class="stat-value">43</div>
+                <div class="stat-note">Traffic sign categories</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">AI engine</div>
+                <div class="stat-value">CNN / TensorFlow</div>
+                <div class="stat-note">✓ Trained model configured</div>
+            </div>
+        </section>
+
+        <section class="dashboard">
+
+            <!-- IMAGE UPLOAD PANEL -->
+            <div class="panel">
+                <div class="panel-heading">
+                    <h2>Image input</h2>
+                    <span class="step">01 / UPLOAD</span>
+                </div>
+
+                <p class="description">
+                    Choose a clear traffic sign image to start recognition.
+                </p>
+
+                {% if error %}
+                <div class="alert alert-error">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="upload-box">
+                        <div class="camera-icon">📷</div>
+                        <h3>Choose your traffic sign image</h3>
+                        <p>Upload a clear image for AI analysis</p>
+
+                        <input
+                            type="file"
+                            name="image"
+                            id="imageInput"
+                            accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                            required
+                        >
+
+                        <div class="file-info">
+                            JPG or PNG · Maximum 5 MB
+                        </div>
+                    </div>
+
+                    <button class="primary-btn" type="submit">
+                        Analyze traffic sign <span>→</span>
+                    </button>
+                </form>
+
+                <a href="{{ url_for('live_camera') }}"
+                   class="live-camera-btn">
+                    📹 Live Camera Recognition <span>↗</span>
+                </a>
+            </div>
+
+            <!-- PREDICTION PANEL -->
+            <div class="panel">
+                <div class="panel-heading">
+                    <h2>Recognition output</h2>
+                    <span class="step">02 / RESULT</span>
+                </div>
+
+                <p class="description">
+                    Your image analysis and model prediction.
+                </p>
+
+                <div class="result-image">
+                    {% if image_data %}
+                        <img
+                            src="data:image/png;base64,{{ image_data }}"
+                            alt="Uploaded traffic sign"
+                        >
+                    {% else %}
+                        <div class="placeholder">
+                            <div class="icon">🚦</div>
+                            <strong>Your analysis appears here</strong>
+                            <p>Upload an image and select Analyze traffic sign.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if prediction is not none %}
+                    <div class="result-label">Predicted traffic sign</div>
+
+                    <h2 class="prediction">{{ prediction }}</h2>
+
+                    <div class="confidence-row">
+                        <span>Prediction confidence</span>
+                        <span class="confidence-value">
+                            {{ "%.2f"|format(confidence) }}%
+                        </span>
+                    </div>
+
+                    <div class="progress-track">
+                        <div class="progress-fill"
+                             style="width: {{ [confidence, 100]|min }}%">
+                        </div>
+                    </div>
+
+                    <p class="confidence-note">
+                        Confidence is the model's predicted probability,
+                        not a guarantee of correctness.
+                    </p>
+                {% else %}
+                    <div class="result-label">Predicted traffic sign</div>
+                    <h2 class="prediction">Awaiting image analysis</h2>
+
+                    <div class="confidence-row">
+                        <span>Prediction confidence</span>
+                        <span class="confidence-value">—</span>
+                    </div>
+
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: 0%"></div>
+                    </div>
+
+                    <p class="confidence-note">
+                        Your prediction and confidence score will appear here
+                        after successful analysis.
+                    </p>
+                {% endif %}
+            </div>
+
+        </section>
+
+        <section class="tip">
+            <strong>✦ Pro tip for better results</strong>
+            Use a clear, well-lit image where the traffic sign is visible.
+            Avoid blurry photos, very dark images, and signs that occupy
+            only a tiny part of the image.
+            <br><br>
+            <strong>⚠ Safety note</strong>
+            This is an educational demonstration. Do not rely on its
+            predictions for real-world driving or safety-critical decisions.
+        </section>
+
+    </main>
+
+    <footer>
+        TrafficVision · Deep Learning Traffic Sign Recognition
+        <br>
+        Built with Python, Flask, TensorFlow and Computer Vision
+    </footer>
+
+    <script>
+        const imageInput = document.getElementById("imageInput");
+
+        imageInput.addEventListener("change", function () {
+            if (!this.files.length) return;
+
+            const file = this.files[0];
+            const allowedTypes = ["image/jpeg", "image/png"];
+            const maxSize = 5 * 1024 * 1024;
+
+            if (!allowedTypes.includes(file.type)) {
+                alert("Please select a JPG or PNG image.");
+                this.value = "";
+                return;
+            }
+
+            if (file.size > maxSize) {
+                alert("Please select an image smaller than 5 MB.");
+                this.value = "";
+                return;
+            }
+        });
+    </script>
+
+</body>
+</html>
