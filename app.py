@@ -1,4 +1,5 @@
 
+
 from ultralytics import YOLO
 import os
 import base64
@@ -16,18 +17,30 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 # --------------------------------------------------
 # LOAD YOUR TRAINED CNN MODEL
 # --------------------------------------------------
-MODEL_PATH = os.path.join("models", "traffic_sign_model.keras")
+# Compressed TensorFlow Lite Model
+MODEL_PATH = os.path.join(
+    "models",
+    "traffic_sign_model_quant.tflite"
+)
 
 if not os.path.exists(MODEL_PATH):
     raise FileNotFoundError(
-        f"Model not found: {MODEL_PATH}. "
+        f"Compressed model not found: {MODEL_PATH}. "
         "Check your models folder."
     )
 
-print("Loading trained traffic sign model...", flush=True)
-model = tf.keras.models.load_model(MODEL_PATH)
-print("CNN model loaded successfully!", flush=True)
+print("Loading compressed TFLite model...", flush=True)
 
+interpreter = tf.lite.Interpreter(
+    model_path=MODEL_PATH
+)
+
+interpreter.allocate_tensors()
+
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+print("Compressed TFLite model loaded successfully!", flush=True)
 # --------------------------------------------------
 # LOAD YOLO11 NANO MODEL
 # --------------------------------------------------
@@ -85,22 +98,72 @@ CLASS_NAMES = [
 ]
 
 # --------------------------------------------------
-# CNN PREDICTION
+# # CNN PREDICTION
 # --------------------------------------------------
 def predict_traffic_sign(rgb_image):
-    """Classify an RGB traffic-sign crop using the trained CNN."""
+    """Classify an RGB traffic-sign image using the TFLite CNN."""
+
     resized = cv2.resize(rgb_image, (32, 32))
 
     image_array = np.asarray(resized, dtype=np.float32)
     image_array = np.expand_dims(image_array, axis=0)
 
-    probabilities = model.predict(image_array, verbose=0)[0]
+    # Read model input information
+    input_info = input_details[0]
+    input_dtype = input_info["dtype"]
 
-    class_id = int(np.argmax(probabilities))
-    confidence = float(probabilities[class_id]) * 100
+    # Convert input if the model expects quantized values
+    if np.issubdtype(input_dtype, np.integer):
+        scale, zero_point = input_info["quantization"]
+
+        if scale > 0:
+            image_array = np.round(image_array / scale + zero_point)
+
+        image_array = np.clip(
+            image_array,
+            np.iinfo(input_dtype).min,
+            np.iinfo(input_dtype).max
+        ).astype(input_dtype)
+    else:
+        image_array = image_array.astype(input_dtype)
+
+    interpreter.set_tensor(
+        input_info["index"],
+        image_array
+    )
+
+    interpreter.invoke()
+
+    # Get model output
+    output_info = output_details[0]
+    output = interpreter.get_tensor(output_info["index"])[0]
+
+    # Dequantize output if required
+    if np.issubdtype(output.dtype, np.integer):
+        scale, zero_point = output_info["quantization"]
+
+        if scale > 0:
+            output = (output.astype(np.float32) - zero_point) * scale
+        else:
+            output = output.astype(np.float32)
+    else:
+        output = output.astype(np.float32)
+
+    # Get predicted class
+    class_id = int(np.argmax(output))
+
+    # Convert the model probability to a percentage and keep it in range.
+    confidence = float(output[class_id])
+    if not np.isfinite(confidence):
+        confidence = 0.0
+    confidence = confidence * 100.0 if confidence <= 1.0 else confidence
+    confidence = float(np.clip(confidence, 0.0, 100.0))
+
+    print("Predicted class:", class_id, flush=True)
+    print("Predicted sign:", CLASS_NAMES[class_id], flush=True)
+    print("Confidence:", confidence, flush=True)
 
     return class_id, confidence
-
 
 # --------------------------------------------------
 # YOLO DETECTION HELPER
@@ -222,9 +285,11 @@ def home():
                 original = img.copy()
 
                 rgb_image = np.asarray(original)
+
                 class_id, confidence = predict_traffic_sign(
                     rgb_image
                 )
+
                 prediction = CLASS_NAMES[class_id]
 
                 original.thumbnail((500, 500))
@@ -237,19 +302,24 @@ def home():
 
             except Exception as exc:
                 print("Image prediction error:", exc, flush=True)
+
                 error = (
                     "Could not process this image. "
                     "Please try a valid JPG or PNG."
                 )
 
+    # DEBUG OUTPUT
+    print("DEBUG PREDICTION:", prediction, flush=True)
+    print("DEBUG CONFIDENCE:", confidence, flush=True)
+
     return render_template(
         "index.html",
+        image_data=image_data,
         prediction=prediction,
         confidence=confidence,
-        image_data=image_data,
-        error=error
+        error=error,
     )
-
+  
 
 # --------------------------------------------------
 # LIVE CAMERA PAGE
@@ -263,24 +333,24 @@ def live_camera():
 # LIVE CAMERA FRAME GENERATOR
 # --------------------------------------------------
 def generate_frames():
+    # This opens the camera attached to the server, not a visitor's browser.
+    # It works locally when a webcam is attached; hosted services usually
+    # cannot access the user's computer webcam this way.
     camera = cv2.VideoCapture(0)
 
     if not camera.isOpened():
         camera.release()
-        print("ERROR: Could not open webcam.", flush=True)
+        print("ERROR: Could not open server webcam.", flush=True)
         return
 
     try:
         while True:
             success, frame = camera.read()
-
             if not success:
                 break
 
             try:
-                frame, class_id, confidence = detect_and_classify(
-                    frame
-                )
+                frame, class_id, confidence = detect_and_classify(frame)
 
                 if class_id is None:
                     cv2.putText(
@@ -291,7 +361,7 @@ def generate_frames():
                         0.65,
                         (0, 165, 255),
                         2,
-                        cv2.LINE_AA
+                        cv2.LINE_AA,
                     )
 
                 cv2.rectangle(
@@ -299,23 +369,22 @@ def generate_frames():
                     (10, 55),
                     (min(frame.shape[1] - 10, 650), 95),
                     (15, 25, 40),
-                    -1
+                    -1,
                 )
 
                 cv2.putText(
                     frame,
-                    "TRAFFICVISION AI - YOLO11n + CNN",
+                    "TRAFFICVISION AI - YOLO11n + TFLITE CNN",
                     (20, 82),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.55,
                     (255, 200, 50),
                     2,
-                    cv2.LINE_AA
+                    cv2.LINE_AA,
                 )
 
             except Exception as exc:
                 print("Live prediction error:", exc, flush=True)
-
                 cv2.putText(
                     frame,
                     "Prediction error",
@@ -323,11 +392,11 @@ def generate_frames():
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
                     (0, 0, 255),
-                    2
+                    2,
+                    cv2.LINE_AA,
                 )
 
             success, buffer = cv2.imencode(".jpg", frame)
-
             if not success:
                 continue
 
@@ -350,7 +419,7 @@ def generate_frames():
 def video_feed():
     return Response(
         generate_frames(),
-        mimetype="multipart/x-mixed-replace; boundary=frame"
+        mimetype="multipart/x-mixed-replace; boundary=frame",
     )
 
 
@@ -361,10 +430,13 @@ def video_feed():
 def file_too_large(error):
     return (
         "Image too large. Please upload an image smaller than 5 MB.",
-        413
+        413,
     )
 
 
+# --------------------------------------------------
+# --------------------------------------------------
+# START FLASK SERVER
 # --------------------------------------------------
 # START FLASK SERVER
 # --------------------------------------------------

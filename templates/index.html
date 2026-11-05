@@ -343,15 +343,20 @@
 
         .progress-track {
             height: 9px;
+            width: 100%;
             background: #25344a;
             border-radius: 20px;
             overflow: hidden;
         }
 
         .progress-fill {
+            display: block;
             height: 100%;
+            width: 0%;
+            min-width: 0;
             background: linear-gradient(90deg, #18b9ed, #41e0a3);
             border-radius: 20px;
+            transition: width 0.35s ease;
         }
 
         .confidence-note {
@@ -554,19 +559,23 @@
 
                 {% if prediction is not none %}
                     <div class="result-label">Predicted traffic sign</div>
-
                     <h2 class="prediction">{{ prediction }}</h2>
 
                     <div class="confidence-row">
                         <span>Prediction confidence</span>
                         <span class="confidence-value">
-                            {{ "%.2f"|format(confidence) }}%
+                            {{ "%.2f"|format(confidence|default(0)|float) }}%
                         </span>
                     </div>
 
                     <div class="progress-track">
                         <div class="progress-fill"
-                             style="width: {{ [confidence, 100]|min }}%">
+                             role="progressbar"
+                             aria-label="Prediction confidence"
+                             aria-valuemin="0"
+                             aria-valuemax="100"
+                             aria-valuenow="{{ confidence|default(0)|float }}"
+                             style="width: {{ confidence|default(0)|float }}%;">
                         </div>
                     </div>
 
